@@ -104,4 +104,18 @@ public class AuthController {
                 request.getEmail(), request.getOtp(), request.getNewPassword());
         return ResponseEntity.ok(Map.of("message", "Mật khẩu đã được đặt lại thành công! Vui lòng đăng nhập lại."));
     }
+
+    @GetMapping("/check-availability")
+    public ResponseEntity<Map<String, Boolean>> checkAvailability(
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String phone) {
+        
+        if (email != null) {
+            return ResponseEntity.ok(Map.of("available", authService.isEmailAvailable(email)));
+        }
+        if (phone != null) {
+            return ResponseEntity.ok(Map.of("available", authService.isPhoneAvailable(phone)));
+        }
+        return ResponseEntity.badRequest().build();
+    }
 }

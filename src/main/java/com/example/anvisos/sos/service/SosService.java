@@ -135,7 +135,8 @@ public class SosService {
             "victimName", user.getFullName(),
             "publicToken", event.getPublicToken(),
             "lat", event.getLastLat(),
-            "lng", event.getLastLng()
+            "lng", event.getLastLng(),
+            "locationText", event.getLocationText()
         ));
 
         return new TriggerResult(sent, event.getPublicToken());

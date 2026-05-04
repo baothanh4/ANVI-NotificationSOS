@@ -4,9 +4,11 @@ import com.example.anvisos.auth.dto.request.LoginRequest;
 import com.example.anvisos.auth.dto.request.RegisterRequest;
 import com.example.anvisos.auth.dto.request.RefreshRequest;
 import com.example.anvisos.auth.dto.response.TokenResponse;
+import com.example.anvisos.model.entity.HealthRecord;
 import com.example.anvisos.model.entity.RefreshToken;
 import com.example.anvisos.model.entity.User;
 import com.example.anvisos.model.enums.UserRole;
+import com.example.anvisos.model.repository.HealthRecordRepository;
 import com.example.anvisos.model.repository.RefreshTokenRepository;
 import com.example.anvisos.model.repository.UserRepository;
 import com.example.anvisos.notification.EmailService;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 public class AuthService {
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final HealthRecordRepository healthRecordRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
@@ -27,6 +30,7 @@ public class AuthService {
     public AuthService(
             UserRepository userRepository,
             RefreshTokenRepository refreshTokenRepository,
+            HealthRecordRepository healthRecordRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
             RefreshTokenService refreshTokenService,
@@ -34,12 +38,14 @@ public class AuthService {
     ) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
+        this.healthRecordRepository = healthRecordRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.refreshTokenService = refreshTokenService;
         this.emailService = emailService;
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public User register(RegisterRequest request) {
         if (userRepository.findByPhone(request.getPhone()).isPresent()) {
             throw new IllegalArgumentException("Số điện thoại đã được đăng ký");
@@ -53,12 +59,22 @@ public class AuthService {
                 .phone(request.getPhone())
                 .email(request.getEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
-                .role(Optional.ofNullable(request.getRole()).orElse(UserRole.OWNER))
+                .role(java.util.Optional.ofNullable(request.getRole()).orElse(UserRole.OWNER))
                 .phoneVerified(false)
                 .emailVerified(false)
                 .createdAt(Instant.now())
                 .build();
         User saved = userRepository.save(user);
+
+        // Khởi tạo Hồ sơ y tế cơ bản cho SOS
+        HealthRecord healthRecord = HealthRecord.builder()
+                .user(saved)
+                .bloodType(request.getBloodType())
+                .birthYear(request.getBirthYear())
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+        healthRecordRepository.save(healthRecord);
 
         // Gửi OTP xác thực email (bất đồng bộ)
         if (saved.getEmail() != null && !saved.getEmail().isBlank()) {
@@ -107,5 +123,15 @@ public class AuthService {
                 jwtService.getAccessTtlSeconds(),
                 refreshTokenService.getRefreshTtlSeconds()
         );
+    }
+
+    public boolean isEmailAvailable(String email) {
+        if (email == null || email.isBlank()) return true;
+        return userRepository.findByEmail(email).isEmpty();
+    }
+
+    public boolean isPhoneAvailable(String phone) {
+        if (phone == null || phone.isBlank()) return true;
+        return userRepository.findByPhone(phone).isEmpty();
     }
 }

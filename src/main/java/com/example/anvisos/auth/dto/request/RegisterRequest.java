@@ -22,4 +22,7 @@ public class RegisterRequest {
     private String password;
 
     private UserRole role;
+
+    private String bloodType;
+    private Integer birthYear;
 }
