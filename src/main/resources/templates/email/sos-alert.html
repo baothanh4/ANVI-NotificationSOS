@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>🚨 CẢNH BÁO SOS KHẨN CẤP</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #1a1a1a;
+            color: #2d3748;
+        }
+        .wrapper {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 40px rgba(229, 62, 62, 0.3);
+        }
+        .alert-banner {
+            background: #e53e3e;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            animation-name: pulse;
+        }
+        .header {
+            background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+            padding: 36px 32px;
+            text-align: center;
+            position: relative;
+        }
+        .sos-badge {
+            display: inline-block;
+            background: #e53e3e;
+            color: white;
+            font-size: 36px;
+            font-weight: 900;
+            padding: 16px 32px;
+            border-radius: 12px;
+            letter-spacing: 4px;
+            margin-bottom: 16px;
+            box-shadow: 0 0 30px rgba(229,62,62,0.5);
+        }
+        .header .title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+        .header .subtitle {
+            color: #a0aec0;
+            font-size: 13px;
+            margin-top: 6px;
+        }
+        .body {
+            padding: 32px;
+        }
+        .alert-box {
+            background: #fff5f5;
+            border: 2px solid #fc8181;
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 24px;
+        }
+        .alert-box p {
+            font-size: 15px;
+            color: #c53030;
+            line-height: 1.7;
+        }
+        .info-card {
+            background: #f7fafc;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 24px;
+            border: 1px solid #e2e8f0;
+        }
+        .info-card-header {
+            background: #2d3748;
+            color: white;
+            padding: 12px 20px;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .info-row {
+            display: flex;
+            padding: 12px 20px;
+            border-bottom: 1px solid #edf2f7;
+        }
+        .info-row:last-child { border-bottom: none; }
+        .info-label {
+            width: 140px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #718096;
+            flex-shrink: 0;
+        }
+        .info-value {
+            font-size: 14px;
+            color: #1a202c;
+            font-weight: 500;
+        }
+        .map-btn {
+            display: block;
+            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+            color: white;
+            text-decoration: none;
+            text-align: center;
+            padding: 16px 32px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            letter-spacing: 0.5px;
+        }
+        .health-section {
+            background: #fff8f8;
+            border-left: 4px solid #e53e3e;
+            border-radius: 0 12px 12px 0;
+            padding: 18px 20px;
+            margin-bottom: 24px;
+        }
+        .health-section h3 {
+            font-size: 14px;
+            font-weight: 700;
+            color: #c53030;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+        .health-section p {
+            font-size: 14px;
+            color: #4a5568;
+            line-height: 1.7;
+        }
+        .footer {
+            background: #1a202c;
+            padding: 24px 32px;
+            text-align: center;
+        }
+        .footer p {
+            font-size: 12px;
+            color: #718096;
+            line-height: 1.8;
+        }
+        .footer .brand { color: #fc8181; font-weight: 700; }
+    </style>
+</head>
+<body>
+<div class="wrapper">
+    <!-- Alert Banner -->
+    <div class="alert-banner">🚨 CẢNH BÁO KHẨN CẤP 🚨</div>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="sos-badge">🆘 SOS</div>
+        <div class="title">TÍN HIỆU CẦU CỨU ĐÃ ĐƯỢC KÍCH HOẠT</div>
+        <div class="subtitle">Được gửi từ hệ thống <strong style="color:#fc8181">ANVI-SOS</strong></div>
+    </div>
+
+    <!-- Body -->
+    <div class="body">
+
+        <!-- Alert message -->
+        <div class="alert-box">
+            <p>
+                ⚠️ Người thân của bạn — <strong th:text="${victimName}">Tên nạn nhân</strong>
+                — vừa <strong>kích hoạt tín hiệu SOS khẩn cấp</strong>.<br/>
+                Vui lòng liên hệ hoặc đến địa điểm ngay lập tức!
+            </p>
+        </div>
+
+        <!-- Victim info -->
+        <div class="info-card">
+            <div class="info-card-header">👤 Thông tin nạn nhân</div>
+            <div class="info-row">
+                <span class="info-label">Họ tên</span>
+                <span class="info-value" th:text="${victimName}">—</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Số điện thoại</span>
+                <span class="info-value" th:text="${victimPhone}">—</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Thời điểm SOS</span>
+                <span class="info-value" th:text="${triggeredAt}">—</span>
+            </div>
+        </div>
+
+        <!-- Health info -->
+        <div th:if="${hasHealthInfo}" class="health-section">
+            <h3>🏥 Thông tin sức khỏe quan trọng</h3>
+            <p>
+                <span th:if="${bloodType}">🩸 <strong>Nhóm máu:</strong> <span th:text="${bloodType}">—</span><br/></span>
+                <span th:if="${allergies}">⚠️ <strong>Dị ứng:</strong> <span th:text="${allergies}">—</span><br/></span>
+                <span th:if="${chronicDiseases}">💊 <strong>Bệnh mãn tính:</strong> <span th:text="${chronicDiseases}">—</span><br/></span>
+                <span th:if="${currentMedication}">💊 <strong>Thuốc đang dùng:</strong> <span th:text="${currentMedication}">—</span></span>
+            </p>
+        </div>
+
+        <!-- Map button -->
+        <a th:href="${mapUrl}" class="map-btn">
+            📍 XEM VỊ TRÍ TRÊN BẢN ĐỒ
+        </a>
+
+        <!-- Coordinates raw -->
+        <div class="info-card">
+            <div class="info-card-header">📍 Tọa độ GPS</div>
+            <div class="info-row">
+                <span class="info-label">Latitude</span>
+                <span class="info-value" th:text="${latitude}">—</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Longitude</span>
+                <span class="info-value" th:text="${longitude}">—</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>
+            Đây là cảnh báo tự động từ hệ thống <span class="brand">ANVI-SOS</span>.<br/>
+            Vui lòng không trả lời email này. Liên hệ ngay với người thân hoặc cơ quan cứu hộ.
+        </p>
+    </div>
+</div>
+</body>
+</html>
