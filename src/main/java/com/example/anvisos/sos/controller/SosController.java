@@ -25,7 +25,7 @@ public class SosController {
     public SosTriggerResponse trigger(@RequestBody SosTriggerRequest request,
                                       HttpServletRequest httpRequest) {
         System.out.println("[SOS] Trigger: userId=" + request.getUserId()
-                + ", lat=" + request.getGpsLat() + ", lng=" + request.getGpsLng());
+                + ", type=" + request.getSosType() + ", silent=" + request.isSilent());
         SosService.TriggerResult result = sosService.trigger(
                 request, getClientIp(httpRequest), httpRequest.getHeader("User-Agent"));
         return new SosTriggerResponse(result.sent(), result.publicToken());
@@ -56,6 +56,22 @@ public class SosController {
         String locationText = (String) body.get("locationText");
         sosService.updateLocation(token, lat, lng, locationText);
         return Map.of("status", "updated");
+    }
+
+    /** Đánh dấu đã an toàn */
+    @PostMapping("/public/{token}/safe")
+    public Map<String, String> markAsSafe(@PathVariable String token, @RequestBody(required = false) Map<String, String> body) {
+        String note = body != null ? body.get("note") : "Người dùng xác nhận an toàn";
+        sosService.markAsSafe(token, note);
+        return Map.of("status", "safe");
+    }
+
+    /** Cập nhật URL media (audio/video) */
+    @PostMapping("/public/{token}/media")
+    public Map<String, String> updateMedia(@PathVariable String token, @RequestBody Map<String, String> body) {
+        String mediaUrl = body.get("mediaUrl");
+        sosService.updateMediaUrl(token, mediaUrl);
+        return Map.of("status", "media_updated");
     }
 
     private String getClientIp(HttpServletRequest request) {

@@ -35,6 +35,7 @@ public class SosService {
     private final NotificationService notificationService;
     private final EmailService emailService;
     private final AuditService auditService;
+    private final SocialLinkRepository socialLinkRepository;
     private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
 
     @Value("${anvi.qr.base-url:http://localhost:8081/}")
@@ -49,6 +50,7 @@ public class SosService {
             NotificationService notificationService,
             EmailService emailService,
             AuditService auditService,
+            SocialLinkRepository socialLinkRepository,
             org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate
     ) {
         this.userRepository = userRepository;
@@ -59,6 +61,7 @@ public class SosService {
         this.notificationService = notificationService;
         this.emailService = emailService;
         this.auditService = auditService;
+        this.socialLinkRepository = socialLinkRepository;
         this.messagingTemplate = messagingTemplate;
     }
 
@@ -111,7 +114,7 @@ public class SosService {
             });
         }
 
-        // Gửi 1 bản sao Email cho chính nạn nhân (để lưu vết hoặc thông báo)
+        // Gửi 1 bản sao Email cho chính nạn nhân
         if (user.getEmail() != null && !user.getEmail().isBlank()) {
             double lat = request.getGpsLat() != null ? request.getGpsLat().doubleValue() : 0;
             double lng = request.getGpsLng() != null ? request.getGpsLng().doubleValue() : 0;
@@ -129,15 +132,32 @@ public class SosService {
 
         auditService.record(AuditEventType.SOS_TRIGGERED, user, card, ip, userAgent, null, request.getLocationText());
 
-        // 3. PHÁT TÍN HIỆU REAL-TIME QUA WEBSOCKET
-        messagingTemplate.convertAndSend("/topic/sos-alerts", (Object) java.util.Map.of(
+        // 3. PHÁT TÍN HIỆU REAL-TIME QUA WEBSOCKET CHO ADMIN/DASHBOARD
+        messagingTemplate.convertAndSend("/topic/sos-alerts", java.util.Map.of(
             "type", "SOS_ALERT",
             "victimName", user.getFullName(),
             "publicToken", event.getPublicToken(),
             "lat", event.getLastLat(),
             "lng", event.getLastLng(),
-            "locationText", event.getLocationText()
-        ));
+            "locationText", event.getLocationText(),
+            "sosType", event.getSosType(),
+            "isSilent", event.isSilent()
+        ), (java.util.Map<String, Object>) null);
+        
+        // 4. THÔNG BÁO CHO TÌNH NGUYỆN VIÊN GẦN ĐÓ (LOCAL HEROES)
+        if (request.getGpsLat() != null && request.getGpsLng() != null) {
+            List<User> volunteers = userRepository.findVolunteersNearby(request.getGpsLat(), request.getGpsLng(), 1.0); // 1km
+            for (User volunteer : volunteers) {
+                if (!volunteer.getId().equals(user.getId())) {
+                    messagingTemplate.convertAndSendToUser(volunteer.getPhone(), "/queue/nearby-sos", java.util.Map.of(
+                        "message", "Có người cần giúp đỡ gần vị trí của bạn!",
+                        "victimName", user.getFullName(),
+                        "distance", "Dưới 1km",
+                        "alertUrl", alertUrl
+                    ));
+                }
+            }
+        }
 
         return new TriggerResult(sent, event.getPublicToken());
     }
@@ -166,6 +186,9 @@ public class SosService {
         resp.setTriggeredAt(VN_FMT.format(event.getTriggeredAt()));
         resp.setUpdatedAt(VN_FMT.format(event.getUpdatedAt()));
         resp.setLocationText(event.getLocationText());
+        resp.setMediaUrl(event.getMediaUrl());
+        resp.setSosType(event.getSosType());
+        resp.setSafe(!event.isActive());
 
         if (health != null) {
             resp.setBloodType(health.getBloodType());
@@ -186,6 +209,17 @@ public class SosService {
             resp.setGoogleMapsDirectionsUrl(
                     "https://www.google.com/maps/dir/?api=1&destination=" + lat + "," + lng + "&travelmode=driving");
         }
+
+        // Fetch visible social links
+        List<SocialLink> socialLinks = socialLinkRepository.findByUserIdAndVisibleTrue(user.getId());
+        resp.setSocialLinks(socialLinks.stream()
+                .map(l -> com.example.anvisos.social.dto.SocialLinkResponse.builder()
+                        .id(l.getId())
+                        .platform(l.getPlatform())
+                        .url(l.getUrl())
+                        .visible(l.isVisible())
+                        .build())
+                .collect(java.util.stream.Collectors.toList()));
 
         return resp;
     }
@@ -218,6 +252,8 @@ public class SosService {
                     existing.setLocationText(request.getLocationText());
                     existing.setUpdatedAt(Instant.now());
                     existing.setActive(true);
+                    existing.setSilent(request.isSilent());
+                    existing.setSosType(request.getSosType());
                     return sosEventRepository.save(existing);
                 })
                 .orElseGet(() -> {
@@ -231,9 +267,44 @@ public class SosService {
                             .triggeredAt(Instant.now())
                             .updatedAt(Instant.now())
                             .active(true)
+                            .isSilent(request.isSilent())
+                            .sosType(request.getSosType())
                             .build();
                     return sosEventRepository.save(event);
                 });
+    }
+
+    @Transactional
+    public void markAsSafe(String token, String note) {
+        SosEvent event = sosEventRepository.findByPublicTokenAndActiveTrue(token)
+                .orElseThrow(() -> new IllegalArgumentException("SOS event not found"));
+        
+        event.setActive(false);
+        event.setDeactivatedAt(Instant.now());
+        event.setDeactivationNote(note);
+        sosEventRepository.save(event);
+
+        // Thông báo cho người thân
+        List<EmergencyContact> contacts = contactRepository.findByUserIdOrderByPriorityAsc(event.getUser().getId());
+        String msg = "[ANVI SOS] Nạn nhân " + event.getUser().getFullName() + " đã xác nhận AN TOÀN lúc " + VN_FMT.format(Instant.now()) + ".";
+        for (EmergencyContact contact : contacts) {
+            notificationService.sendToPhone(contact.getPhone(), msg);
+        }
+
+        // Broadcast websocket
+        messagingTemplate.convertAndSend("/topic/sos-alerts", java.util.Map.of(
+            "type", "SOS_SAFE",
+            "publicToken", token,
+            "victimName", event.getUser().getFullName()
+        ), (java.util.Map<String, Object>) null);
+    }
+
+    @Transactional
+    public void updateMediaUrl(String token, String mediaUrl) {
+        SosEvent event = sosEventRepository.findByPublicTokenAndActiveTrue(token)
+                .orElseThrow(() -> new IllegalArgumentException("SOS event not found"));
+        event.setMediaUrl(mediaUrl);
+        sosEventRepository.save(event);
     }
 
     private String generateToken() {

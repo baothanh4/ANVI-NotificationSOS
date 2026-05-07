@@ -1,5 +1,6 @@
 package com.example.anvisos.model.entity;
 
+import com.example.anvisos.model.enums.SosType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -54,4 +55,21 @@ public class SosEvent {
     @Column(nullable = false)
     @Builder.Default
     private boolean active = true;
+
+    @Column(length = 512)
+    private String mediaUrl;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean isSilent = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private SosType sosType = SosType.MANUAL;
+
+    private Instant deactivatedAt;
+
+    @Column(length = 255)
+    private String deactivationNote;
 }

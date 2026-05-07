@@ -51,6 +51,16 @@ public class User {
     @Builder.Default
     private boolean emailVerified = false;
 
+    @Column(precision = 11, scale = 8)
+    private java.math.BigDecimal lastLat;
+
+    @Column(precision = 11, scale = 8)
+    private java.math.BigDecimal lastLng;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean isVolunteer = false;
+
     @Column(nullable = false)
     private Instant createdAt;
 }
