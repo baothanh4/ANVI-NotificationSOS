@@ -20,6 +20,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @RestController
 @RequestMapping("/api/qr")
 public class QrController {
@@ -48,6 +51,20 @@ public class QrController {
                 token.isActive(),
                 token.getCreatedAt()
         );
+    }
+
+    @GetMapping("/cards/{cardId}/tokens")
+    public List<QrTokenResponse> listTokens(@PathVariable Long cardId) {
+        return qrTokenRepository.findByCardId(cardId).stream()
+                .map(token -> new QrTokenResponse(
+                        token.getId(),
+                        token.getToken(),
+                        token.getShortCode(),
+                        qrService.buildShortUrl(token.getShortCode()),
+                        token.isActive(),
+                        token.getCreatedAt()
+                ))
+                .collect(Collectors.toList());
     }
 
     @PatchMapping("/tokens/{tokenId}/active")

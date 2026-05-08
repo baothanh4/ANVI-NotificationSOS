@@ -35,6 +35,19 @@ public class JwtService {
                 .compact();
     }
 
+    public Long getUserIdFromToken(String token) {
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+        String subject = Jwts.parser()
+                .verifyWith(secretKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .getSubject();
+        return Long.parseLong(subject);
+    }
+
     public long getAccessTtlSeconds() {
         return accessTtlSeconds;
     }

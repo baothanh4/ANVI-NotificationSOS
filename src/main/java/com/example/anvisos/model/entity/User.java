@@ -37,6 +37,7 @@ public class User {
     @Column(unique = true)
     private String email;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @Column(nullable = false)
     private String passwordHash;
 
@@ -60,6 +61,12 @@ public class User {
     @Column(nullable = false)
     @Builder.Default
     private boolean isVolunteer = false;
+
+    @Column(columnDefinition = "TEXT")
+    private String bio;
+
+    @Column
+    private String dateOfBirth;
 
     @Column(nullable = false)
     private Instant createdAt;

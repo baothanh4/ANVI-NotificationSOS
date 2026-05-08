@@ -2,8 +2,11 @@ package com.example.anvisos.social.service;
 
 import com.example.anvisos.model.entity.SocialLink;
 import com.example.anvisos.model.entity.User;
+import com.example.anvisos.model.entity.QrToken;
 import com.example.anvisos.model.repository.SocialLinkRepository;
 import com.example.anvisos.model.repository.UserRepository;
+import com.example.anvisos.model.repository.QrTokenRepository;
+import com.example.anvisos.social.dto.PublicProfileResponse;
 import com.example.anvisos.social.dto.SocialLinkRequest;
 import com.example.anvisos.social.dto.SocialLinkResponse;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +23,26 @@ public class SocialLinkService {
 
     private final SocialLinkRepository socialLinkRepository;
     private final UserRepository userRepository;
+    private final QrTokenRepository qrTokenRepository;
+
+    @Transactional(readOnly = true)
+    public PublicProfileResponse getPublicProfile(String shortCode) {
+        QrToken token = qrTokenRepository.findByShortCode(shortCode)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid code"));
+        
+        User user = token.getCard().getUser();
+        List<SocialLinkResponse> visibleLinks = socialLinkRepository.findByUserId(user.getId()).stream()
+                .filter(SocialLink::isVisible)
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+
+        return PublicProfileResponse.builder()
+                .fullName(user.getFullName())
+                .bio(user.getBio())
+                .dateOfBirth(user.getDateOfBirth())
+                .socialLinks(visibleLinks)
+                .build();
+    }
 
     @Transactional(readOnly = true)
     public List<SocialLinkResponse> getMySocialLinks(Long userId) {

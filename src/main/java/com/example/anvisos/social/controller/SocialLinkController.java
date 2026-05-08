@@ -1,5 +1,6 @@
 package com.example.anvisos.social.controller;
 
+import com.example.anvisos.social.dto.PublicProfileResponse;
 import com.example.anvisos.social.dto.SocialLinkRequest;
 import com.example.anvisos.social.dto.SocialLinkResponse;
 import com.example.anvisos.social.service.SocialLinkService;
@@ -15,6 +16,11 @@ import java.util.List;
 public class SocialLinkController {
 
     private final SocialLinkService socialLinkService;
+
+    @GetMapping("/public/{shortCode}")
+    public ResponseEntity<PublicProfileResponse> getPublicProfile(@PathVariable String shortCode) {
+        return ResponseEntity.ok(socialLinkService.getPublicProfile(shortCode));
+    }
 
     @GetMapping("/my")
     public ResponseEntity<List<SocialLinkResponse>> getMyLinks(@RequestParam Long userId) {
