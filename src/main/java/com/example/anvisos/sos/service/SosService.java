@@ -36,6 +36,7 @@ public class SosService {
     private final EmailService emailService;
     private final AuditService auditService;
     private final SocialLinkRepository socialLinkRepository;
+    private final RescueConnectionRepository rescueConnectionRepository;
     private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
 
     @Value("${anvi.qr.base-url:http://localhost:8081/}")
@@ -51,6 +52,7 @@ public class SosService {
             EmailService emailService,
             AuditService auditService,
             SocialLinkRepository socialLinkRepository,
+            RescueConnectionRepository rescueConnectionRepository,
             org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate
     ) {
         this.userRepository = userRepository;
@@ -62,6 +64,7 @@ public class SosService {
         this.emailService = emailService;
         this.auditService = auditService;
         this.socialLinkRepository = socialLinkRepository;
+        this.rescueConnectionRepository = rescueConnectionRepository;
         this.messagingTemplate = messagingTemplate;
     }
 
@@ -89,29 +92,17 @@ public class SosService {
         String smsMessage = buildSmsMessage(user, health, request, alertUrl);
 
         int sent = 0;
-        for (EmergencyContact contact : contacts) {
-            // 1. Gửi SMS (Kênh truyền thống)
-            notificationService.sendToPhone(contact.getPhone(), smsMessage);
-            sent++;
+        // 2b. Notify Rescue Network (Social Connections)
+        List<RescueConnection> sentConns = rescueConnectionRepository.findByRequesterIdAndStatus(user.getId(), "ACCEPTED");
+        List<RescueConnection> receivedConns = rescueConnectionRepository.findByTargetIdAndStatus(user.getId(), "ACCEPTED");
 
-            // 2. Tìm xem số điện thoại này có tài khoản ANVI không để gửi Email
-            userRepository.findByPhone(contact.getPhone()).ifPresent(contactUser -> {
-                if (contactUser.getEmail() != null && !contactUser.getEmail().isBlank()) {
-                    double lat = request.getGpsLat() != null ? request.getGpsLat().doubleValue() : 0;
-                    double lng = request.getGpsLng() != null ? request.getGpsLng().doubleValue() : 0;
-                    
-                    emailService.sendSosAlert(
-                            contactUser.getEmail(),
-                            user.getFullName(), // Tên nạn nhân
-                            user.getPhone(),    // SĐT nạn nhân
-                            lat, lng,
-                            health != null ? health.getBloodType() : null,
-                            health != null ? health.getAllergies() : null,
-                            health != null ? health.getConditions() : null,
-                            alertUrl            // Link live tracking
-                    );
-                }
-            });
+        for (RescueConnection conn : sentConns) {
+            notifyContact(conn.getTarget(), user, health, request, alertUrl, smsMessage);
+            sent++;
+        }
+        for (RescueConnection conn : receivedConns) {
+            notifyContact(conn.getRequester(), user, health, request, alertUrl, smsMessage);
+            sent++;
         }
 
         // Gửi 1 bản sao Email cho chính nạn nhân
@@ -316,6 +307,28 @@ public class SosService {
     private String buildAlertUrl(String token) {
         // Trả về URL frontend (port 5173 khi dev)
         return "http://localhost:5173/sos-alert/" + token;
+    }
+
+    private void notifyContact(User contactUser, User victim, HealthRecord health, SosTriggerRequest request, String alertUrl, String smsMessage) {
+        // 1. Gửi SMS
+        notificationService.sendToPhone(contactUser.getPhone(), smsMessage);
+
+        // 2. Gửi Email (nếu có)
+        if (contactUser.getEmail() != null && !contactUser.getEmail().isBlank()) {
+            double lat = request.getGpsLat() != null ? request.getGpsLat().doubleValue() : 0;
+            double lng = request.getGpsLng() != null ? request.getGpsLng().doubleValue() : 0;
+
+            emailService.sendSosAlert(
+                    contactUser.getEmail(),
+                    victim.getFullName(),
+                    victim.getPhone(),
+                    lat, lng,
+                    health != null ? health.getBloodType() : null,
+                    health != null ? health.getAllergies() : null,
+                    health != null ? health.getConditions() : null,
+                    alertUrl
+            );
+        }
     }
 
     private String buildInitials(String fullName) {
