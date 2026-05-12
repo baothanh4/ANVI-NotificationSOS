@@ -97,11 +97,11 @@ public class SosService {
         List<RescueConnection> receivedConns = rescueConnectionRepository.findByTargetIdAndStatus(user.getId(), "ACCEPTED");
 
         for (RescueConnection conn : sentConns) {
-            notifyContact(conn.getTarget(), user, health, request, alertUrl, smsMessage);
+            notifyContact(conn.getTarget(), user, health, request, alertUrl, smsMessage, event.getPublicToken());
             sent++;
         }
         for (RescueConnection conn : receivedConns) {
-            notifyContact(conn.getRequester(), user, health, request, alertUrl, smsMessage);
+            notifyContact(conn.getRequester(), user, health, request, alertUrl, smsMessage, event.getPublicToken());
             sent++;
         }
 
@@ -309,7 +309,7 @@ public class SosService {
         return "http://localhost:5173/sos-alert/" + token;
     }
 
-    private void notifyContact(User contactUser, User victim, HealthRecord health, SosTriggerRequest request, String alertUrl, String smsMessage) {
+    private void notifyContact(User contactUser, User victim, HealthRecord health, SosTriggerRequest request, String alertUrl, String smsMessage, String publicToken) {
         // 1. Gửi SMS
         notificationService.sendToPhone(contactUser.getPhone(), smsMessage);
 
@@ -329,6 +329,17 @@ public class SosService {
                     alertUrl
             );
         }
+
+        // 3. Gửi Real-time WebSocket cho người nhận (Social Connection)
+        messagingTemplate.convertAndSendToUser(contactUser.getPhone(), "/queue/sos-alerts", java.util.Map.of(
+            "type", "SOS_ALERT",
+            "victimName", victim.getFullName(),
+            "publicToken", publicToken,
+            "lat", request.getGpsLat() != null ? request.getGpsLat() : 0,
+            "lng", request.getGpsLng() != null ? request.getGpsLng() : 0,
+            "locationText", request.getLocationText() != null ? request.getLocationText() : "Vị trí không xác định",
+            "sosType", request.getSosType() != null ? request.getSosType() : "GENERAL"
+        ), (java.util.Map<String, Object>) null);
     }
 
     private String buildInitials(String fullName) {

@@ -12,8 +12,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        // Topic để client subscribe (ví dụ: /topic/sos-alerts)
-        config.enableSimpleBroker("/topic");
+        // Topic để client subscribe (ví dụ: /topic/sos-alerts, /queue/nearby-sos)
+        config.enableSimpleBroker("/topic", "/queue");
         config.setApplicationDestinationPrefixes("/app");
     }
 
