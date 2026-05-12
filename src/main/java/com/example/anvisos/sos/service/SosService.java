@@ -124,16 +124,16 @@ public class SosService {
         auditService.record(AuditEventType.SOS_TRIGGERED, user, card, ip, userAgent, null, request.getLocationText());
 
         // 3. PHÁT TÍN HIỆU REAL-TIME QUA WEBSOCKET CHO ADMIN/DASHBOARD
-        messagingTemplate.convertAndSend("/topic/sos-alerts", java.util.Map.of(
-            "type", "SOS_ALERT",
-            "victimName", user.getFullName(),
-            "publicToken", event.getPublicToken(),
-            "lat", event.getLastLat(),
-            "lng", event.getLastLng(),
-            "locationText", event.getLocationText(),
-            "sosType", event.getSosType(),
-            "isSilent", event.isSilent()
-        ), (java.util.Map<String, Object>) null);
+        var alertMap = new java.util.HashMap<String, Object>();
+        alertMap.put("type", "SOS_ALERT");
+        alertMap.put("victimName", user.getFullName());
+        alertMap.put("publicToken", event.getPublicToken());
+        alertMap.put("lat", event.getLastLat());
+        alertMap.put("lng", event.getLastLng());
+        alertMap.put("locationText", event.getLocationText());
+        alertMap.put("sosType", event.getSosType());
+        alertMap.put("isSilent", event.isSilent());
+        messagingTemplate.convertAndSend("/topic/sos-alerts", alertMap, (java.util.Map<String, Object>) null);
         
         // 4. THÔNG BÁO CHO TÌNH NGUYỆN VIÊN GẦN ĐÓ (LOCAL HEROES)
         if (request.getGpsLat() != null && request.getGpsLng() != null) {
@@ -283,11 +283,11 @@ public class SosService {
         }
 
         // Broadcast websocket
-        messagingTemplate.convertAndSend("/topic/sos-alerts", java.util.Map.of(
-            "type", "SOS_SAFE",
-            "publicToken", token,
-            "victimName", event.getUser().getFullName()
-        ), (java.util.Map<String, Object>) null);
+        var safeMap = new java.util.HashMap<String, Object>();
+        safeMap.put("type", "SOS_SAFE");
+        safeMap.put("publicToken", token);
+        safeMap.put("victimName", event.getUser().getFullName());
+        messagingTemplate.convertAndSend("/topic/sos-alerts", safeMap, (java.util.Map<String, Object>) null);
     }
 
     @Transactional
@@ -331,15 +331,15 @@ public class SosService {
         }
 
         // 3. Gửi Real-time WebSocket cho người nhận (Social Connection)
-        messagingTemplate.convertAndSendToUser(contactUser.getPhone(), "/queue/sos-alerts", java.util.Map.of(
-            "type", "SOS_ALERT",
-            "victimName", victim.getFullName(),
-            "publicToken", publicToken,
-            "lat", request.getGpsLat() != null ? request.getGpsLat() : 0,
-            "lng", request.getGpsLng() != null ? request.getGpsLng() : 0,
-            "locationText", request.getLocationText() != null ? request.getLocationText() : "Vị trí không xác định",
-            "sosType", request.getSosType() != null ? request.getSosType() : "GENERAL"
-        ), (java.util.Map<String, Object>) null);
+        var contactMap = new java.util.HashMap<String, Object>();
+        contactMap.put("type", "SOS_ALERT");
+        contactMap.put("victimName", victim.getFullName());
+        contactMap.put("publicToken", publicToken);
+        contactMap.put("lat", request.getGpsLat() != null ? request.getGpsLat() : 0);
+        contactMap.put("lng", request.getGpsLng() != null ? request.getGpsLng() : 0);
+        contactMap.put("locationText", request.getLocationText() != null ? request.getLocationText() : "Vị trí không xác định");
+        contactMap.put("sosType", request.getSosType() != null ? request.getSosType() : "GENERAL");
+        messagingTemplate.convertAndSendToUser(contactUser.getPhone(), "/queue/sos-alerts", contactMap, (java.util.Map<String, Object>) null);
     }
 
     private String buildInitials(String fullName) {
@@ -377,5 +377,9 @@ public class SosService {
     }
 
     /** Inner record để trả về kết quả trigger */
-    public record TriggerResult(int sent, String publicToken) {}
+    public record TriggerResult(int sent, String publicToken) {
+        public int sentCount() {
+            return sent;
+        }
+    }
 }

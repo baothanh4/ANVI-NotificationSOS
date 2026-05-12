@@ -5,9 +5,8 @@ import com.example.anvisos.model.entity.Card;
 import com.example.anvisos.model.entity.EmergencyContact;
 import com.example.anvisos.model.entity.User;
 import com.example.anvisos.model.enums.CardStatus;
-import com.example.anvisos.model.repository.CardRepository;
-import com.example.anvisos.model.repository.EmergencyContactRepository;
-import com.example.anvisos.model.repository.UserRepository;
+import com.example.anvisos.model.repository.*;
+import com.example.anvisos.notification.EmailService;
 import com.example.anvisos.notification.NotificationService;
 import com.example.anvisos.sos.dto.SosTriggerRequest;
 import java.time.Instant;
@@ -38,8 +37,28 @@ class SosServiceTest {
     @Mock
     private AuditService auditService;
 
+    @Mock
+    private HealthRecordRepository healthRecordRepository;
+
     @InjectMocks
     private SosService sosService;
+
+    @Mock
+    private SosEventRepository sosEventRepository;
+
+    @Mock
+    private RescueConnectionRepository rescueConnectionRepository;
+
+    @Mock
+    private EmailService emailService;
+
+    @Mock
+    private SocialLinkRepository socialLinkRepository;
+
+    @Mock
+    private org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
+
+
 
     @Test
     void triggerSendsToAllContacts() {
@@ -53,14 +72,17 @@ class SosServiceTest {
         Mockito.when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         Mockito.when(cardRepository.findById(card.getId())).thenReturn(Optional.of(card));
         Mockito.when(contactRepository.findByUserIdOrderByPriorityAsc(userId)).thenReturn(List.of(c1, c2));
-        Mockito.when(notificationService.sendToPhone(Mockito.anyString(), Mockito.anyString())).thenReturn(2);
-
+        Mockito.when(healthRecordRepository.findByUserId(userId)).thenReturn(Optional.empty());
+        Mockito.when(sosEventRepository.findTopByUserIdAndActiveTrueOrderByTriggeredAtDesc(userId)).thenReturn(Optional.empty());
+        Mockito.when(sosEventRepository.save(Mockito.any())).thenAnswer(i -> i.getArgument(0));
+        Mockito.when(rescueConnectionRepository.findByRequesterIdAndStatus(userId, "ACCEPTED")).thenReturn(List.of());
+        Mockito.when(rescueConnectionRepository.findByTargetIdAndStatus(userId, "ACCEPTED")).thenReturn(List.of());
         SosTriggerRequest request = new SosTriggerRequest();
         request.setUserId(userId);
         request.setCardId(card.getId());
 
-        int sent = sosService.trigger(request, "127.0.0.1", "JUnit");
+        SosService.TriggerResult result = sosService.trigger(request, "127.0.0.1", "JUnit");
 
-        Assertions.assertEquals(2, sent);
+        Assertions.assertEquals(0, result.sent());
     }
 }

@@ -7,10 +7,13 @@ import com.example.anvisos.auth.dto.response.TokenResponse;
 import com.example.anvisos.model.entity.RefreshToken;
 import com.example.anvisos.model.entity.User;
 import com.example.anvisos.model.enums.UserRole;
+import com.example.anvisos.model.repository.HealthRecordRepository;
 import com.example.anvisos.model.repository.RefreshTokenRepository;
 import com.example.anvisos.model.repository.UserRepository;
 import java.time.Instant;
 import java.util.Optional;
+
+import com.example.anvisos.notification.EmailService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,6 +44,12 @@ class AuthServiceTest {
     @InjectMocks
     private AuthService authService;
 
+    @Mock
+    private HealthRecordRepository healthRecordRepository;
+
+    @Mock
+    private EmailService emailService;
+
     @Test
     void registerCreatesUser() {
         RegisterRequest request = new RegisterRequest();
@@ -53,6 +62,7 @@ class AuthServiceTest {
         Mockito.when(userRepository.findByEmail("user@anvi.vn")).thenReturn(Optional.empty());
         Mockito.when(passwordEncoder.encode("secret")).thenReturn("hashed");
         Mockito.when(userRepository.save(ArgumentMatchers.any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        Mockito.when(healthRecordRepository.save(Mockito.any())) .thenAnswer(invocation -> invocation.getArgument(0));
 
         User user = authService.register(request);
 
