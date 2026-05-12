@@ -72,12 +72,11 @@ class SosServiceTest {
         Mockito.when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         Mockito.when(cardRepository.findById(card.getId())).thenReturn(Optional.of(card));
         Mockito.when(contactRepository.findByUserIdOrderByPriorityAsc(userId)).thenReturn(List.of(c1, c2));
-        Mockito.when(notificationService.sendToPhone(Mockito.anyString(), Mockito.anyString())).thenReturn(2);
-        Mockito.when(healthRecordRepository.findByUserId(userId)) .thenReturn(Optional.empty());
-        Mockito.when(sosEventRepository.findTopByUserIdAndActiveTrueOrderByTriggeredAtDesc(userId) ).thenReturn(Optional.empty());
-        Mockito.when(sosEventRepository.save(Mockito.any())) .thenAnswer(i -> i.getArgument(0));
-        Mockito.when( rescueConnectionRepository.findByRequesterIdAndStatus(userId, "ACCEPTED") ).thenReturn(List.of());
-        Mockito.when( rescueConnectionRepository.findByTargetIdAndStatus(userId, "ACCEPTED") ).thenReturn(List.of());
+        Mockito.when(healthRecordRepository.findByUserId(userId)).thenReturn(Optional.empty());
+        Mockito.when(sosEventRepository.findTopByUserIdAndActiveTrueOrderByTriggeredAtDesc(userId)).thenReturn(Optional.empty());
+        Mockito.when(sosEventRepository.save(Mockito.any())).thenAnswer(i -> i.getArgument(0));
+        Mockito.when(rescueConnectionRepository.findByRequesterIdAndStatus(userId, "ACCEPTED")).thenReturn(List.of());
+        Mockito.when(rescueConnectionRepository.findByTargetIdAndStatus(userId, "ACCEPTED")).thenReturn(List.of());
         SosTriggerRequest request = new SosTriggerRequest();
         request.setUserId(userId);
         request.setCardId(card.getId());
