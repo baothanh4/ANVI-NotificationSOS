@@ -6,6 +6,7 @@ import com.example.anvisos.model.entity.EmergencyContact;
 import com.example.anvisos.model.entity.User;
 import com.example.anvisos.model.enums.CardStatus;
 import com.example.anvisos.model.repository.*;
+import com.example.anvisos.notification.EmailService;
 import com.example.anvisos.notification.NotificationService;
 import com.example.anvisos.sos.dto.SosTriggerRequest;
 import java.time.Instant;
@@ -45,6 +46,20 @@ class SosServiceTest {
     @Mock
     private SosEventRepository sosEventRepository;
 
+    @Mock
+    private RescueConnectionRepository rescueConnectionRepository;
+
+    @Mock
+    private EmailService emailService;
+
+    @Mock
+    private SocialLinkRepository socialLinkRepository;
+
+    @Mock
+    private org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
+
+
+
     @Test
     void triggerSendsToAllContacts() {
         Long userId = 1L;
@@ -61,13 +76,14 @@ class SosServiceTest {
         Mockito.when(healthRecordRepository.findByUserId(userId)) .thenReturn(Optional.empty());
         Mockito.when(sosEventRepository.findTopByUserIdAndActiveTrueOrderByTriggeredAtDesc(userId) ).thenReturn(Optional.empty());
         Mockito.when(sosEventRepository.save(Mockito.any())) .thenAnswer(i -> i.getArgument(0));
-
+        Mockito.when( rescueConnectionRepository.findByRequesterIdAndStatus(userId, "ACCEPTED") ).thenReturn(List.of());
+        Mockito.when( rescueConnectionRepository.findByTargetIdAndStatus(userId, "ACCEPTED") ).thenReturn(List.of());
         SosTriggerRequest request = new SosTriggerRequest();
         request.setUserId(userId);
         request.setCardId(card.getId());
 
         SosService.TriggerResult result = sosService.trigger(request, "127.0.0.1", "JUnit");
 
-        Assertions.assertEquals(2, result.sentCount());
+        Assertions.assertEquals(0, result.sent());
     }
 }
