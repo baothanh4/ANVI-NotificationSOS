@@ -377,5 +377,8 @@ public class SosService {
     }
 
     /** Inner record để trả về kết quả trigger */
-    public record TriggerResult(int sent, String publicToken) {}
+    public record TriggerResult(int sent, String publicToken) {
+        public int sentCount() {
+        }
+    }
 }

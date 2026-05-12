@@ -59,8 +59,8 @@ class SosServiceTest {
         request.setUserId(userId);
         request.setCardId(card.getId());
 
-        int sent = sosService.trigger(request, "127.0.0.1", "JUnit");
+        SosService.TriggerResult result = sosService.trigger(request, "127.0.0.1", "JUnit");
 
-        Assertions.assertEquals(2, sent);
+        Assertions.assertEquals(2, result.sentCount());
     }
 }
