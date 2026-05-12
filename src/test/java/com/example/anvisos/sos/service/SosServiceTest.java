@@ -7,6 +7,7 @@ import com.example.anvisos.model.entity.User;
 import com.example.anvisos.model.enums.CardStatus;
 import com.example.anvisos.model.repository.CardRepository;
 import com.example.anvisos.model.repository.EmergencyContactRepository;
+import com.example.anvisos.model.repository.HealthRecordRepository;
 import com.example.anvisos.model.repository.UserRepository;
 import com.example.anvisos.notification.NotificationService;
 import com.example.anvisos.sos.dto.SosTriggerRequest;
@@ -38,6 +39,9 @@ class SosServiceTest {
     @Mock
     private AuditService auditService;
 
+    @Mock
+    private HealthRecordRepository healthRecordRepository;
+
     @InjectMocks
     private SosService sosService;
 
@@ -54,6 +58,7 @@ class SosServiceTest {
         Mockito.when(cardRepository.findById(card.getId())).thenReturn(Optional.of(card));
         Mockito.when(contactRepository.findByUserIdOrderByPriorityAsc(userId)).thenReturn(List.of(c1, c2));
         Mockito.when(notificationService.sendToPhone(Mockito.anyString(), Mockito.anyString())).thenReturn(2);
+        Mockito.when(healthRecordRepository.findByUserId(userId)) .thenReturn(Optional.empty());
 
         SosTriggerRequest request = new SosTriggerRequest();
         request.setUserId(userId);
