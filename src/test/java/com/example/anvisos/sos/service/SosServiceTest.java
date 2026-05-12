@@ -5,10 +5,7 @@ import com.example.anvisos.model.entity.Card;
 import com.example.anvisos.model.entity.EmergencyContact;
 import com.example.anvisos.model.entity.User;
 import com.example.anvisos.model.enums.CardStatus;
-import com.example.anvisos.model.repository.CardRepository;
-import com.example.anvisos.model.repository.EmergencyContactRepository;
-import com.example.anvisos.model.repository.HealthRecordRepository;
-import com.example.anvisos.model.repository.UserRepository;
+import com.example.anvisos.model.repository.*;
 import com.example.anvisos.notification.NotificationService;
 import com.example.anvisos.sos.dto.SosTriggerRequest;
 import java.time.Instant;
@@ -45,6 +42,9 @@ class SosServiceTest {
     @InjectMocks
     private SosService sosService;
 
+    @Mock
+    private SosEventRepository sosEventRepository;
+
     @Test
     void triggerSendsToAllContacts() {
         Long userId = 1L;
@@ -59,6 +59,8 @@ class SosServiceTest {
         Mockito.when(contactRepository.findByUserIdOrderByPriorityAsc(userId)).thenReturn(List.of(c1, c2));
         Mockito.when(notificationService.sendToPhone(Mockito.anyString(), Mockito.anyString())).thenReturn(2);
         Mockito.when(healthRecordRepository.findByUserId(userId)) .thenReturn(Optional.empty());
+        Mockito.when(sosEventRepository.findTopByUserIdAndActiveTrueOrderByTriggeredAtDesc(userId) ).thenReturn(Optional.empty());
+        Mockito.when(sosEventRepository.save(Mockito.any())) .thenAnswer(i -> i.getArgument(0));
 
         SosTriggerRequest request = new SosTriggerRequest();
         request.setUserId(userId);

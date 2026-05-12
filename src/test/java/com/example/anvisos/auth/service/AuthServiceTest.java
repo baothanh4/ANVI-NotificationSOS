@@ -12,6 +12,8 @@ import com.example.anvisos.model.repository.RefreshTokenRepository;
 import com.example.anvisos.model.repository.UserRepository;
 import java.time.Instant;
 import java.util.Optional;
+
+import com.example.anvisos.notification.EmailService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,6 +46,9 @@ class AuthServiceTest {
 
     @Mock
     private HealthRecordRepository healthRecordRepository;
+
+    @Mock
+    private EmailService emailService;
 
     @Test
     void registerCreatesUser() {
